@@ -1,21 +1,28 @@
-
 export interface PerfumeDetails {
-  aroma: string[];
-  family: string;
-  size: string;
-  ingredients: string;
-  perfumerNote: string;
+  description: string;
+  olfactoryNotes: string;
+  concept: string;
+  applicationPoint: string;
 }
+
+export type OlfactoryFamily = 'Floral' | 'Oriental' | 'Amaderado' | 'Cítrico' | 'Aromático';
 
 export interface Perfume {
   id: number;
   name: string;
   brand: string;
+  volume: string;
   price: number;
   originalPrice?: number;
   stock: number;
   imageUrl: string;
+  gender: 'Hombre' | 'Mujer' | 'Unisex';
+  olfactoryFamily: OlfactoryFamily;
   details?: PerfumeDetails;
+  officialUrl?: string;
+  sales?: number;
+  rating?: number;
+  reviewCount?: number;
 }
 
 export interface RecommendedPerfume {

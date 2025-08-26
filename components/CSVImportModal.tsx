@@ -1,6 +1,8 @@
 
+
 import React, { useState, useCallback } from 'react';
-import { Perfume } from '../types';
+// FIX: Import OlfactoryFamily to use for type validation.
+import { Perfume, OlfactoryFamily } from '../types';
 import { XMarkIcon, DownloadIcon, ImportIcon } from './icons';
 
 interface CSVImportModalProps {
@@ -15,7 +17,7 @@ interface ImportResult {
   failed: { row: any; reason: string }[];
 }
 
-const CSV_HEADERS = 'nombre_producto,descripcion,precio,precio_descuento,sku,stock,categoria,url_imagen_1,url_imagen_2,notas_salida,notas_corazon,notas_fondo';
+const CSV_HEADERS = 'nombre_producto,descripcion,precio,precio_descuento,sku,stock,categoria,genero,url_imagen_1,url_imagen_2,notas_salida,notas_corazon,notas_fondo';
 
 export const CSVImportModal: React.FC<CSVImportModalProps> = ({ onClose, onImport, currentPerfumes }) => {
   const [isDragging, setIsDragging] = useState(false);
@@ -92,6 +94,9 @@ export const CSVImportModal: React.FC<CSVImportModalProps> = ({ onClose, onImpor
       failed: [],
     };
 
+    // FIX: Define valid olfactory families to validate against the CSV 'categoria' column.
+    const validOlfactoryFamilies: OlfactoryFamily[] = ['Floral', 'Oriental', 'Amaderado', 'Cítrico', 'Aromático'];
+
     data.forEach((row, index) => {
       const { nombre_producto, sku, url_imagen_1 } = row;
 
@@ -121,25 +126,39 @@ export const CSVImportModal: React.FC<CSVImportModalProps> = ({ onClose, onImpor
 
       const price = parseFloat(row.precio_descuento) || parseFloat(row.precio) || 0;
       const originalPrice = row.precio_descuento ? parseFloat(row.precio) : undefined;
+      
+      const genderValue = (row.genero || 'Unisex').trim().toLowerCase();
+      const gender: 'Hombre' | 'Mujer' | 'Unisex' = 
+        genderValue === 'hombre' ? 'Hombre' :
+        genderValue === 'mujer' ? 'Mujer' :
+        'Unisex';
+
+      // FIX: Determine olfactory family from 'categoria' column, with a fallback.
+      const categoryValue = (row.categoria || '').trim().toLowerCase();
+      const olfactoryFamily = (validOlfactoryFamilies.find(f => f.toLowerCase() === categoryValue) || 'Aromático');
 
       const newPerfume: Perfume = {
         id: Date.now() + index,
         name: row.nombre_producto,
+        // FIX: Assumed 'categoria' from CSV is the olfactory family, so brand is defaulted.
         brand: row.categoria || 'ScentMart',
+        volume: 'No especificado', // You might want to add 'volume' to your CSV later
         price: price,
         originalPrice: originalPrice,
         stock: parseInt(row.stock, 10) || 0,
         imageUrl: row.url_imagen_1,
+        gender: gender,
+        // FIX: Added missing 'olfactoryFamily' property to conform to Perfume type.
+        olfactoryFamily: olfactoryFamily,
         details: {
-          aroma: [row.descripcion || ''],
-          family: 'Por definir',
-          size: 'Por definir',
-          ingredients: 'Por definir',
-          perfumerNote: [
+          description: row.descripcion || 'Descripción no disponible.',
+          olfactoryNotes: [
               row.notas_salida ? `Salida: ${row.notas_salida}`: '',
               row.notas_corazon ? `Corazón: ${row.notas_corazon}`: '',
               row.notas_fondo ? `Fondo: ${row.notas_fondo}`: '',
-          ].filter(Boolean).join(' | '),
+          ].filter(Boolean).join(' | ') || 'Notas olfativas no especificadas.',
+          concept: 'Concepto por definir.',
+          applicationPoint: 'Aplicar en muñecas, cuello y detrás de las orejas.',
         },
       };
       validationResult.successful.push(newPerfume);

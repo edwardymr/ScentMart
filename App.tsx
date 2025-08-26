@@ -1,19 +1,22 @@
-
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 import { PerfumeCard } from './components/PerfumeCard';
 import { QuizModal } from './components/QuizModal';
 import { SparklesIcon, ImportIcon } from './components/icons';
-import { Perfume, RecommendedPerfume, QuizPreferences } from './types';
+import { Perfume, RecommendedPerfume, QuizPreferences, OlfactoryFamily } from './types';
 import { findMyScent } from './services/geminiService';
 import { allPerfumes as initialPerfumes } from './data/perfumes';
 import { PerfumeDetailModal } from './components/PerfumeDetailModal';
 import { CSVImportModal } from './components/CSVImportModal';
+import { LoginModal } from './components/LoginModal';
+import { BestSellers } from './components/BestSellers';
+import { WhatsAppButton } from './components/WhatsAppButton';
 
 const App: React.FC = () => {
   const [isQuizOpen, setIsQuizOpen] = useState(false);
   const [isCSVImportModalOpen, setIsCSVImportModalOpen] = useState(false);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [quizResults, setQuizResults] = useState<RecommendedPerfume[] | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -21,6 +24,10 @@ const App: React.FC = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [perfumes, setPerfumes] = useState<Perfume[]>(initialPerfumes);
   const [isHeaderSticky, setIsHeaderSticky] = useState(false);
+
+  const [genderFilter, setGenderFilter] = useState<'all' | 'Mujer' | 'Hombre' | 'Unisex'>('all');
+  const [priceSort, setPriceSort] = useState<'none' | 'asc' | 'desc'>('none');
+  const [familyFilter, setFamilyFilter] = useState<'all' | OlfactoryFamily>('all');
 
   useEffect(() => {
     const handleScroll = () => {
@@ -66,7 +73,20 @@ const App: React.FC = () => {
   };
 
   const handleToggleAdmin = () => {
-    setIsAdmin(prev => !prev);
+    if (isAdmin) {
+      setIsAdmin(false); // Logout
+    } else {
+      setIsLoginModalOpen(true); // Show login modal
+    }
+  };
+
+  const handleLogin = (user: string, pass: string): boolean => {
+    if (user === 'admin' && pass === '0728') {
+      setIsAdmin(true);
+      setIsLoginModalOpen(false);
+      return true;
+    }
+    return false;
   };
   
   const handleUpdatePerfume = (updatedPerfume: Perfume) => {
@@ -84,10 +104,30 @@ const App: React.FC = () => {
     setIsCSVImportModalOpen(false);
   };
 
+  const filteredPerfumes = useMemo(() => {
+    let result = [...perfumes];
+
+    if (genderFilter !== 'all') {
+      result = result.filter(p => p.gender === genderFilter);
+    }
+
+    if (familyFilter !== 'all') {
+      result = result.filter(p => p.olfactoryFamily === familyFilter);
+    }
+
+    if (priceSort === 'asc') {
+      result.sort((a, b) => a.price - b.price);
+    } else if (priceSort === 'desc') {
+      result.sort((a, b) => b.price - a.price);
+    }
+
+    return result;
+  }, [perfumes, genderFilter, priceSort, familyFilter]);
+
 
   return (
     <div className="min-h-screen bg-[#224859] text-[#F5F5F5] font-sans">
-      <Header isAdmin={isAdmin} onToggleAdmin={handleToggleAdmin} isSticky={isHeaderSticky} />
+      <Header isSticky={isHeaderSticky} />
       <main>
         {/* Hero Section */}
         <section className="relative h-[60vh] md:h-[80vh] flex items-center justify-center text-center overflow-hidden">
@@ -107,8 +147,11 @@ const App: React.FC = () => {
           </div>
         </section>
 
+        {/* Best Sellers Section */}
+        <BestSellers perfumes={perfumes} onViewDetails={handleViewDetails} />
+
         {/* Catalog Section */}
-        <section id="collections" className="py-16 sm:py-24">
+        <section id="collections" className="py-16 sm:py-24 bg-[#1c3a4a]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-center items-center gap-4 mb-4">
                <h2 className="text-3xl font-serif-display text-center font-bold text-[#DAB162]">Nuestro Catálogo</h2>
@@ -122,9 +165,57 @@ const App: React.FC = () => {
                  </>
                 )}
             </div>
-            <p className="text-center max-w-2xl mx-auto text-[#DAB162] mb-12">Aromas para cada estilo y ocasión.</p>
+            <p className="text-center max-w-2xl mx-auto text-[#DAB162] mb-8">Aromas para cada estilo y ocasión.</p>
+
+            {/* Filter Controls */}
+            <div className="flex flex-col gap-6 justify-center items-center mb-10 p-6 bg-[#2a556a]/70 rounded-xl border border-[#3a6a82]">
+                <div className="flex flex-col md:flex-row gap-x-8 gap-y-4 items-center flex-wrap justify-center">
+                    {/* Gender filter */}
+                    <div className="flex items-center gap-2 flex-wrap justify-center">
+                        <span className="font-semibold text-lg text-white mr-2">Género:</span>
+                        {(['all', 'Mujer', 'Hombre', 'Unisex'] as const).map(gender => (
+                            <button
+                                key={gender}
+                                onClick={() => setGenderFilter(gender)}
+                                className={`px-4 py-2 text-sm font-bold rounded-full transition-all duration-200 ${genderFilter === gender ? 'bg-[#DAB162] text-[#224859] shadow-md' : 'bg-[#1c3a4a] text-gray-300 hover:bg-[#3a6a82]'}`}
+                            >
+                                {gender === 'all' ? 'Todos' : gender}
+                            </button>
+                        ))}
+                    </div>
+                    {/* Olfactory Family Filter */}
+                    <div className="flex items-center gap-2 flex-wrap justify-center">
+                        <span className="font-semibold text-lg text-white mr-2">Familia:</span>
+                        {(['all', 'Floral', 'Oriental', 'Amaderado', 'Cítrico', 'Aromático'] as const).map(family => (
+                            <button
+                                key={family}
+                                onClick={() => setFamilyFilter(family as 'all' | OlfactoryFamily)}
+                                className={`px-4 py-2 text-sm font-bold rounded-full transition-all duration-200 ${familyFilter === family ? 'bg-[#DAB162] text-[#224859] shadow-md' : 'bg-[#1c3a4a] text-gray-300 hover:bg-[#3a6a82]'}`}
+                            >
+                                {family === 'all' ? 'Todas' : family}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                    <label htmlFor="price-sort" className="font-semibold text-lg text-white">Ordenar por:</label>
+                    <select
+                        id="price-sort"
+                        value={priceSort}
+                        onChange={(e) => setPriceSort(e.target.value as 'none' | 'asc' | 'desc')}
+                        className="bg-[#1c3a4a] border border-[#3a6a82] rounded-full text-white font-semibold py-2 px-4 focus:outline-none focus:ring-2 focus:ring-[#DAB162] cursor-pointer"
+                    >
+                        <option value="none">Relevancia</option>
+                        <option value="asc">Menor a Mayor Precio</option>
+                        <option value="desc">Mayor a Menor Precio</option>
+                    </select>
+                </div>
+            </div>
+
+
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
-              {perfumes.map(perfume => (
+              {filteredPerfumes.map(perfume => (
                 <PerfumeCard key={perfume.id} perfume={perfume} onViewDetails={handleViewDetails} isAdmin={isAdmin} />
               ))}
             </div>
@@ -170,7 +261,10 @@ const App: React.FC = () => {
         </section>
 
       </main>
-      <Footer />
+      <Footer isAdmin={isAdmin} onToggleAdmin={handleToggleAdmin} />
+      
+      <WhatsAppButton />
+
       {isQuizOpen && (
         <QuizModal 
           onClose={handleCloseQuiz}
@@ -193,6 +287,12 @@ const App: React.FC = () => {
           onClose={() => setIsCSVImportModalOpen(false)}
           onImport={handleImportPerfumes}
           currentPerfumes={perfumes}
+        />
+      )}
+      {isLoginModalOpen && (
+        <LoginModal
+          onClose={() => setIsLoginModalOpen(false)}
+          onLogin={handleLogin}
         />
       )}
     </div>

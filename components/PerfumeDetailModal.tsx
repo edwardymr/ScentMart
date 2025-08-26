@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
-import { Perfume } from '../types';
+import { Perfume, OlfactoryFamily } from '../types';
 import { XMarkIcon, ShoppingCartIcon } from './icons';
 
 interface PerfumeDetailModalProps {
@@ -24,6 +23,16 @@ const AdminTextArea: React.FC<React.TextareaHTMLAttributes<HTMLTextAreaElement>>
     />
 );
 
+const AdminSelect: React.FC<React.SelectHTMLAttributes<HTMLSelectElement>> = (props) => (
+    <select
+        {...props}
+        className="w-full p-2 bg-[#1c3a4a] border border-[#3a6a82] rounded-md text-white focus:outline-none focus:ring-2 focus:ring-[#DAB162]"
+    >
+        {props.children}
+    </select>
+);
+
+const olfactoryFamilies: OlfactoryFamily[] = ['Floral', 'Oriental', 'Amaderado', 'Cítrico', 'Aromático'];
 
 export const PerfumeDetailModal: React.FC<PerfumeDetailModalProps> = ({ perfume, onClose, onUpdate, isAdmin }) => {
   const [editedPerfume, setEditedPerfume] = useState<Perfume>(perfume);
@@ -40,7 +49,7 @@ export const PerfumeDetailModal: React.FC<PerfumeDetailModalProps> = ({ perfume,
     }).format(value);
   }
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setEditedPerfume(prev => ({ ...prev, [name]: name === 'price' || name === 'originalPrice' || name === 'stock' ? Number(value) : value }));
   };
@@ -53,15 +62,6 @@ export const PerfumeDetailModal: React.FC<PerfumeDetailModalProps> = ({ perfume,
         ...prev.details!,
         [name]: value,
       }
-    }));
-  };
-
-  const handleAromaChange = (index: number, value: string) => {
-    const newAromas = [...(editedPerfume.details?.aroma || [])];
-    newAromas[index] = value;
-    setEditedPerfume(prev => ({
-        ...prev,
-        details: { ...prev.details!, aroma: newAromas }
     }));
   };
 
@@ -106,6 +106,10 @@ export const PerfumeDetailModal: React.FC<PerfumeDetailModalProps> = ({ perfume,
                         <label className="text-sm font-bold text-[#DAB162]">o Pegar URL de Imagen</label>
                         <AdminInput type="text" name="imageUrl" value={editedPerfume.imageUrl} onChange={handleInputChange} />
                     </div>
+                     <div>
+                        <label className="text-sm font-bold text-[#DAB162]">URL Oficial</label>
+                        <AdminInput type="text" name="officialUrl" value={editedPerfume.officialUrl || ''} onChange={handleInputChange} />
+                    </div>
                 </div>
             )}
           </div>
@@ -118,9 +122,37 @@ export const PerfumeDetailModal: React.FC<PerfumeDetailModalProps> = ({ perfume,
             )}
 
             {isAdmin ? (
-                <AdminInput type="text" name="brand" value={editedPerfume.brand} onChange={handleInputChange} className="!p-0 !bg-transparent !border-0 text-lg text-[#DAB162] font-semibold mt-1" />
+                <div className='grid grid-cols-2 md:grid-cols-3 gap-3 mt-2'>
+                    <div>
+                        <label className="text-sm font-bold text-[#DAB162]">Marca</label>
+                        <AdminInput type="text" name="brand" value={editedPerfume.brand} onChange={handleInputChange} />
+                    </div>
+                    <div>
+                        <label className="text-sm font-bold text-[#DAB162]">Volumen</label>
+                        <AdminInput type="text" name="volume" value={editedPerfume.volume || ''} onChange={handleInputChange} placeholder="e.g., 100 ml" />
+                    </div>
+                    <div>
+                        <label className="text-sm font-bold text-[#DAB162]">Género</label>
+                        <AdminSelect name="gender" value={editedPerfume.gender} onChange={handleInputChange}>
+                            <option value="Mujer">Mujer</option>
+                            <option value="Hombre">Hombre</option>
+                            <option value="Unisex">Unisex</option>
+                        </AdminSelect>
+                    </div>
+                    <div className="col-span-2 md:col-span-1">
+                      <label className="text-sm font-bold text-[#DAB162]">Familia Olfativa</label>
+                       <AdminSelect name="olfactoryFamily" value={editedPerfume.olfactoryFamily} onChange={handleInputChange}>
+                            {olfactoryFamilies.map(family => <option key={family} value={family}>{family}</option>)}
+                        </AdminSelect>
+                    </div>
+                </div>
             ) : (
-                 <p className="text-lg text-[#DAB162] font-semibold mt-1">{perfume.brand}</p>
+                 <div className="flex items-center mt-1 gap-3 flex-wrap">
+                    <p className="text-lg text-[#DAB162] font-semibold">{perfume.brand}</p>
+                    {perfume.volume && <p className="text-md text-gray-400 border-l border-gray-500 pl-3">{perfume.volume}</p>}
+                    <span className="px-3 py-1 text-xs font-bold bg-[#1c3a4a] text-[#DAB162] rounded-full uppercase tracking-wider">{perfume.gender}</span>
+                    <span className="px-3 py-1 text-xs font-bold bg-[#1c3a4a] text-[#DAB162] rounded-full uppercase tracking-wider">{perfume.olfactoryFamily}</span>
+                </div>
             )}
             
             <div className="flex items-baseline mt-4">
@@ -155,7 +187,7 @@ export const PerfumeDetailModal: React.FC<PerfumeDetailModalProps> = ({ perfume,
             </div>
 
             {!isAdmin && (
-                <div className="mt-6">
+                <div className="mt-6 flex flex-col gap-3">
                     <button 
                     disabled={perfume.stock === 0}
                     className="w-full flex items-center justify-center px-6 py-3 bg-[#E86A33] text-white font-bold rounded-full shadow-lg hover:bg-opacity-90 transition-all transform hover:scale-105 disabled:bg-gray-500 disabled:cursor-not-allowed disabled:transform-none"
@@ -163,37 +195,40 @@ export const PerfumeDetailModal: React.FC<PerfumeDetailModalProps> = ({ perfume,
                     <ShoppingCartIcon className="h-6 w-6 mr-2" />
                     Añadir al Carrito
                     </button>
+                    {perfume.officialUrl && (
+                        <a 
+                            href={perfume.officialUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="w-full flex items-center justify-center px-6 py-3 bg-transparent border border-[#DAB162] text-[#DAB162] font-bold rounded-full shadow-lg hover:bg-[#DAB162]/10 transition-colors"
+                        >
+                            Ver en Tienda Oficial
+                        </a>
+                    )}
                 </div>
             )}
 
             {perfume.details && (
                 <div className="mt-8 space-y-4 border-t border-[#3a6a82] pt-6 text-gray-300">
                     <div>
-                        <h4 className="font-bold text-lg text-[#DAB162]">Aroma Exclusivo</h4>
+                        <h4 className="font-bold text-lg text-[#DAB162]">Descripción</h4>
                         {isAdmin ? (
-                           <div className="space-y-2 mt-2">
-                                {editedPerfume.details?.aroma.map((item, index) => <AdminTextArea key={index} value={item} onChange={e => handleAromaChange(index, e.target.value)} />)}
-                           </div>
+                           <AdminTextArea name="description" value={editedPerfume.details?.description || ''} onChange={handleDetailsChange} />
                         ) : (
-                            <ul className="list-disc list-inside mt-2 space-y-1">
-                                {perfume.details.aroma.map((item, index) => <li key={index}>{item}</li>)}
-                            </ul>
+                            <p className="mt-1">{perfume.details.description}</p>
                         )}
                     </div>
                      <div>
-                        <h4 className="font-bold text-lg text-[#DAB162]">Familia Olfativa</h4>
-                        {isAdmin ? <AdminInput name="family" value={editedPerfume.details?.family || ''} onChange={handleDetailsChange} /> : <p className="mt-1">{perfume.details.family}</p>}
+                        <h4 className="font-bold text-lg text-[#DAB162]">Notas Olfativas</h4>
+                        {isAdmin ? <AdminTextArea name="olfactoryNotes" value={editedPerfume.details?.olfactoryNotes || ''} onChange={handleDetailsChange} /> : <p className="mt-1">{perfume.details.olfactoryNotes}</p>}
                     </div>
                      <div>
-                        <h4 className="font-bold text-lg text-[#DAB162]">Ingredientes y Concentración</h4>
-                        {isAdmin ? <AdminTextArea name="ingredients" value={editedPerfume.details?.ingredients || ''} onChange={handleDetailsChange} /> : <p className="mt-1">{perfume.details.ingredients}</p>}
+                        <h4 className="font-bold text-lg text-[#DAB162]">Concepto</h4>
+                        {isAdmin ? <AdminTextArea name="concept" value={editedPerfume.details?.concept || ''} onChange={handleDetailsChange} /> : <p className="mt-1">{perfume.details.concept}</p>}
                     </div>
                      <div>
-                        <h4 className="font-bold text-lg text-[#DAB162]">Toque del Perfumista</h4>
-                         {isAdmin ? <AdminTextArea name="perfumerNote" value={editedPerfume.details?.perfumerNote || ''} onChange={handleDetailsChange} /> : <p className="mt-1 italic">"{perfume.details.perfumerNote}"</p>}
-                    </div>
-                    <div>
-                        {isAdmin ? <AdminInput name="size" value={editedPerfume.details?.size || ''} onChange={handleDetailsChange} /> : <p className="text-xs text-gray-400 mt-2">{perfume.details.size}</p>}
+                        <h4 className="font-bold text-lg text-[#DAB162]">¿Dónde aplicar el perfume?</h4>
+                         {isAdmin ? <AdminInput name="applicationPoint" value={editedPerfume.details?.applicationPoint || ''} onChange={handleDetailsChange} /> : <p className="mt-1">{perfume.details.applicationPoint}</p>}
                     </div>
                 </div>
             )}

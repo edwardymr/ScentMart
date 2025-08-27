@@ -1,0 +1,51 @@
+# Nombre del flujo de trabajo que verás en la pestaña "Actions"
+name: Deploy React App to GitHub Pages
+
+# Se ejecuta cada vez que haces un 'push' a la rama 'main'
+on:
+  push:
+    branches: [ "main" ]
+
+# Permisos necesarios para que el robot pueda publicar en tu nombre
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Define el trabajo que hará el robot
+jobs:
+  deploy:
+    runs-on: ubuntu-latest # Usa una máquina virtual de Ubuntu
+    steps:
+      # 1. Clona tu repositorio en la máquina virtual
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 2. Configura Node.js para poder ejecutar los comandos de build
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20 # Usa una versión reciente de Node.js
+
+      # 3. Instala las dependencias de tu proyecto
+      - name: Install dependencies
+        run: npm install
+
+      # 4. Construye la aplicación (el paso más importante)
+      - name: Build
+        run: npm run build
+
+      # 5. Prepara la carpeta 'dist' para ser publicada
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      # 6. Sube la carpeta 'dist' como un artefacto
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './dist' # Asegúrate de que esta es la carpeta que genera tu build
+
+      # 7. Despliega el artefacto en GitHub Pages
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

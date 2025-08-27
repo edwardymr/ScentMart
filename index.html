@@ -1,0 +1,109 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ScentMart Perfumes</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
+    <style>
+      body {
+        font-family: 'Poppins', sans-serif;
+        background-color: #224859;
+        color: #F5F5F5;
+      }
+      .font-serif-display {
+        font-family: 'Playfair Display', serif;
+      }
+      .slider-container::-webkit-scrollbar {
+        display: none;
+      }
+      .slider-container {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+      /* Custom Swiper styles */
+      .swiper-button-next, .swiper-button-prev {
+        color: #DAB162 !important;
+        transition: transform 0.2s ease;
+      }
+      .swiper-button-next:hover, .swiper-button-prev:hover {
+        transform: scale(1.1);
+      }
+      .swiper-pagination-bullet-active {
+        background-color: #DAB162 !important;
+      }
+      .swiper-pagination-bullet {
+        background-color: #f5f5f5 !important;
+        opacity: 0.5;
+      }
+       .swiper-slide {
+        height: auto;
+      }
+      
+      /* Custom Price Slider Styles */
+      .thumb {
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+        width: 1rem;
+        height: 1rem;
+        border-radius: 50%;
+        background: #E86A33;
+        border: 2px solid white;
+        cursor: pointer;
+        pointer-events: all;
+        position: relative;
+      }
+      .thumb::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+        width: 1rem;
+        height: 1rem;
+        border-radius: 50%;
+        background: #E86A33;
+        border: 2px solid white;
+        cursor: pointer;
+        pointer-events: all;
+        position: relative;
+      }
+      .thumb, .thumb::-webkit-slider-runnable-track {
+        background: transparent;
+      }
+       input[type="range"] {
+        pointer-events: none;
+        position: absolute;
+        height: 0;
+        width: 100%;
+        outline: none;
+        top: -0.25rem;
+        margin: 0;
+        padding: 0;
+      }
+
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react-dom/": "https://esm.sh/react-dom@^19.1.1/",
+    "react/": "https://esm.sh/react@^19.1.1/",
+    "react": "https://esm.sh/react@^19.1.1",
+    "@google/genai": "https://esm.sh/@google/genai@^1.13.0",
+    "@emailjs/browser": "https://esm.sh/@emailjs/browser@4",
+    "swiper/": "https://esm.sh/swiper@11/",
+    "swiper/react": "https://esm.sh/swiper@11/react"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>

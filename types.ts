@@ -1,3 +1,4 @@
+
 export interface PerfumeDetails {
   description: string;
   olfactoryNotes: string;
@@ -16,6 +17,7 @@ export interface Perfume {
   originalPrice?: number;
   stock: number;
   imageUrl: string;
+  images?: string[];
   gender: 'Hombre' | 'Mujer' | 'Unisex';
   olfactoryFamily: OlfactoryFamily;
   details?: PerfumeDetails;
@@ -23,6 +25,7 @@ export interface Perfume {
   sales?: number;
   rating?: number;
   reviewCount?: number;
+  sku?: string;
 }
 
 export interface RecommendedPerfume {
@@ -39,4 +42,26 @@ export interface QuizPreferences {
   landscape: string;
   sensation: string;
   timeOfDay: string;
+}
+
+export interface CartItem {
+  perfume: Perfume;
+  quantity: number;
+}
+
+export interface OrderDetails {
+  customer: {
+    name: string;
+    address: string;
+    addressDetails?: string;
+    city: string;
+    whatsapp: string;
+    email: string;
+  };
+  items: CartItem[];
+  subtotal: number;
+  shipping: number;
+  total: number;
+  paymentMethod: 'cod' | 'card';
+  orderNumber: string;
 }

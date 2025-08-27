@@ -11,7 +11,9 @@
   "dependencies": {
     "react-dom": "^19.1.1",
     "react": "^19.1.1",
-    "@google/genai": "^1.13.0"
+    "@google/genai": "^1.13.0",
+    "@emailjs/browser": "4",
+    "swiper": "11"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",

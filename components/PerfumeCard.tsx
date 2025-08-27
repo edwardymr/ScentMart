@@ -5,9 +5,10 @@ interface PerfumeCardProps {
   perfume: Perfume;
   onViewDetails: (perfume: Perfume) => void;
   isAdmin: boolean;
+  onAddToCart: (perfume: Perfume) => void;
 }
 
-export const PerfumeCard: React.FC<PerfumeCardProps> = ({ perfume, onViewDetails, isAdmin }) => {
+export const PerfumeCard: React.FC<PerfumeCardProps> = ({ perfume, onViewDetails, isAdmin, onAddToCart }) => {
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('es-CO', {
       style: 'currency',
@@ -50,9 +51,8 @@ export const PerfumeCard: React.FC<PerfumeCardProps> = ({ perfume, onViewDetails
         {perfume.stock > 0 && !isAdmin && (
             <button 
                 onClick={(e) => {
-                e.stopPropagation();
-                // Add to cart logic here
-                console.log(`${perfume.name} added to cart`);
+                  e.stopPropagation();
+                  onAddToCart(perfume);
                 }}
                 className="px-6 py-2 bg-[#E86A33] text-white font-semibold rounded-full shadow-lg hover:bg-opacity-90"
             >

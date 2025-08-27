@@ -1,10 +1,10 @@
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
+
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
-import { PerfumeCard } from './components/PerfumeCard';
 import { QuizModal } from './components/QuizModal';
-import { SparklesIcon, ImportIcon } from './components/icons';
-import { Perfume, RecommendedPerfume, QuizPreferences, OlfactoryFamily } from './types';
+import { SparklesIcon } from './components/icons';
+import { Perfume, QuizPreferences, OlfactoryFamily, CartItem, OrderDetails } from './types';
 import { findMyScent } from './services/geminiService';
 import { allPerfumes as initialPerfumes } from './data/perfumes';
 import { PerfumeDetailModal } from './components/PerfumeDetailModal';
@@ -12,291 +12,290 @@ import { CSVImportModal } from './components/CSVImportModal';
 import { LoginModal } from './components/LoginModal';
 import { BestSellers } from './components/BestSellers';
 import { WhatsAppButton } from './components/WhatsAppButton';
+import { AnnouncementBar } from './components/AnnouncementBar';
+import { ToastNotification } from './components/ToastNotification';
+import { OlfactoryFamilyExplorer } from './components/OlfactoryFamilyExplorer';
+import { CartPage } from './components/CartPage';
+import { CheckoutPage } from './components/CheckoutPage';
+import { ThankYouPage } from './components/ThankYouPage';
+import { sendOrderConfirmationEmail } from './services/emailService';
+import { AdminPage } from './components/admin/AdminPage';
+import { CatalogSyncModal } from './components/CatalogSyncModal';
+import { CatalogView } from './components/CatalogView';
+import { SearchModal } from './components/SearchModal';
 
-const App: React.FC = () => {
+
+const formatCurrency = (value: number) => {
+  return new Intl.NumberFormat('es-CO', {
+    style: 'currency',
+    currency: 'COP',
+    minimumFractionDigits: 0,
+  }).format(value);
+};
+
+const logoBase64 = `data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CiAgPGc+CiAgICA8cGF0aCBkPSJNNzUgMzBDNDAgMzAgNDAgNjAgNDAgODBDNDAgMTAwIDUwIDExNSA3NSAxMTVDMTEwIDExNSAxMTAgODUgMTEwIDgwQzExMCA2MCAxMDAgMzAgNzUgMzBaTTYwIDgwQzYwIDcwIDcwIDcwIDc1IDcwQzc4IDcwIDg1IDcyIDg1IDgwQzg1IDkwIDgwIDEwMCA3NSAxMDBDNzAgMTAwIDYwIDkwIDYwIDgwWiIgZmlsbD0iI0RBQjE2MiIvPgogICAgPHBhdGggZD0iTTEyNSAxNzBDMTYwIDE3MCAxNjAgMTQwIDE2MCAxMjBDMTYwIDEwMCAxNTAgODUgMTI1IDg1QzkwIDg1IDkwIDExNSA5MCAxMjBDOTAgMTQwIDEwMCAxNzAgMTI1IDE3MFpNMTE1IDEyMEMxMTUgMTEwIDEyMCAxMDAgMTI1IDEwMEMxMzAgMTAwIDE0MCAxMTAgMTQwIDEyMEMxNDAgMTMwIDEzMCAxNjAgMTI1IDE2MEMxMjIgMTYwIDExNSAxNTggMTE1IDE1MFoiIGZpbGw9IiNEQUIxNjIiLz4KICAgIDx0ZXh0IHg9IjEwMCIgeT0iMTkwIiBmb250LWZhbWls eT0iJ1BsYXlmYWlyIERpc3BsYXknLCBzZXJpZiIgZm9udC1zaXplPSIzMCIgZmlsbD0iI0Y1RjVGNSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+U2NlbnRNYXJ0PC90ZXh0PgogIDwvZz4KPC9zdmc+Cg==`;
+
+type AppView = 'home' | 'cart' | 'checkout' | 'thankyou' | 'admin';
+
+function App() {
+  // --- STATE MANAGEMENT ---
+  const [allPerfumes, setAllPerfumes] = useState<Perfume[]>(initialPerfumes);
+  const [logoUrl, setLogoUrl] = useState<string>(logoBase64);
+  const [view, setView] = useState<AppView>('home');
+
+  // Modals State
   const [isQuizOpen, setIsQuizOpen] = useState(false);
-  const [isCSVImportModalOpen, setIsCSVImportModalOpen] = useState(false);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [isCsvImportModalOpen, setIsCsvImportModalOpen] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
-  const [quizResults, setQuizResults] = useState<RecommendedPerfume[] | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
+  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
+  
+  // Data State
   const [selectedPerfume, setSelectedPerfume] = useState<Perfume | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [perfumes, setPerfumes] = useState<Perfume[]>(initialPerfumes);
-  const [isHeaderSticky, setIsHeaderSticky] = useState(false);
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [latestOrder, setLatestOrder] = useState<OrderDetails | null>(null);
 
-  const [genderFilter, setGenderFilter] = useState<'all' | 'Mujer' | 'Hombre' | 'Unisex'>('all');
-  const [priceSort, setPriceSort] = useState<'none' | 'asc' | 'desc'>('none');
-  const [familyFilter, setFamilyFilter] = useState<'all' | OlfactoryFamily>('all');
+  // UI State
+  const [quizResults, setQuizResults] = useState<Perfume[] | null>(null);
+  const [quizLoading, setQuizLoading] = useState(false);
+  const [quizError, setQuizError] = useState<string | null>(null);
+  const [isSticky, setIsSticky] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [isAdminMode, setIsAdminMode] = useState(false);
 
+  // --- REFS ---
+  const catalogRef = useRef<HTMLDivElement>(null);
+  const bestSellersRef = useRef<HTMLDivElement>(null);
+  const quizRef = useRef<HTMLDivElement>(null);
+
+
+  // --- EFFECTS ---
+  
+  // Sticky header effect
   useEffect(() => {
     const handleScroll = () => {
-        setIsHeaderSticky(window.scrollY > 10);
+      setIsSticky(window.scrollY > 50);
     };
     window.addEventListener('scroll', handleScroll);
-    return () => {
-        window.removeEventListener('scroll', handleScroll);
-    };
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const handleOpenQuiz = () => {
-    setQuizResults(null);
-    setError(null);
-    setIsQuizOpen(true);
+  // --- GENERAL FUNCTIONS ---
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
   };
+  
+  const navigateAndScroll = useCallback((ref: React.RefObject<HTMLDivElement> | null) => {
+    const doScroll = () => {
+      if (ref && ref.current) {
+        ref.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    };
 
-  const handleCloseQuiz = () => {
-    setIsQuizOpen(false);
-  };
+    if (view !== 'home') {
+      setView('home');
+      setTimeout(doScroll, 100); 
+    } else {
+      doScroll();
+    }
+  }, [view]);
 
-  const handleQuizSubmit = useCallback(async (preferences: QuizPreferences) => {
-    setIsLoading(true);
-    setError(null);
+  // --- HANDLERS ---
+  const handleQuizSubmit = async (preferences: QuizPreferences) => {
+    setQuizLoading(true);
+    setQuizError(null);
     setQuizResults(null);
     try {
-      const results = await findMyScent(preferences);
-      setQuizResults(results);
-    } catch (err) {
-      setError('Hubo un error al encontrar tu aroma. Por favor, inténtalo de nuevo.');
-      console.error(err);
+        const recommendedNames = await findMyScent(preferences, allPerfumes.filter(p => p.stock > 0));
+        const results = allPerfumes.filter(p => recommendedNames.includes(p.name));
+        setQuizResults(results);
+    } catch (error) {
+        setQuizError(error instanceof Error ? error.message : 'Ocurrió un error inesperado.');
     } finally {
-      setIsLoading(false);
+        setQuizLoading(false);
     }
-  }, []);
+  };
 
   const handleViewDetails = (perfume: Perfume) => {
     setSelectedPerfume(perfume);
+    setIsDetailModalOpen(true);
   };
 
-  const handleCloseDetails = () => {
-    setSelectedPerfume(null);
+  const handleAddToCart = (perfume: Perfume) => {
+    setCart(prevCart => {
+        const existingItem = prevCart.find(item => item.perfume.id === perfume.id);
+        if (existingItem) {
+            return prevCart.map(item => 
+                item.perfume.id === perfume.id 
+                ? { ...item, quantity: Math.min(item.quantity + 1, perfume.stock) } 
+                : item
+            );
+        }
+        return [...prevCart, { perfume, quantity: 1 }];
+    });
+    showToast(`${perfume.name} añadido al carrito!`);
   };
 
-  const handleToggleAdmin = () => {
-    if (isAdmin) {
-      setIsAdmin(false); // Logout
-    } else {
-      setIsLoginModalOpen(true); // Show login modal
+  const handleUpdateQuantity = (perfumeId: number, newQuantity: number) => {
+    setCart(prevCart => {
+        const itemToUpdate = prevCart.find(item => item.perfume.id === perfumeId);
+        if (!itemToUpdate) return prevCart;
+
+        if (newQuantity <= 0) {
+            return prevCart.filter(item => item.perfume.id !== perfumeId);
+        }
+        if (newQuantity > itemToUpdate.perfume.stock) {
+            showToast(`Stock máximo para ${itemToUpdate.perfume.name} es ${itemToUpdate.perfume.stock}`, 'error');
+            return prevCart.map(item => item.perfume.id === perfumeId ? { ...item, quantity: itemToUpdate.perfume.stock } : item);
+        }
+        return prevCart.map(item => item.perfume.id === perfumeId ? { ...item, quantity: newQuantity } : item);
+    });
+  };
+
+  const handleRemoveFromCart = (perfumeId: number) => {
+    setCart(prevCart => prevCart.filter(item => item.perfume.id !== perfumeId));
+  };
+
+  const handlePlaceOrder = async (orderDetails: OrderDetails) => {
+    setLatestOrder(orderDetails);
+    try {
+        await sendOrderConfirmationEmail(orderDetails);
+        showToast('¡Pedido confirmado! Revisa tu correo.', 'success');
+    } catch (error) {
+        console.error("Failed to send confirmation email:", error);
+        showToast('Tu pedido fue creado, pero no pudimos enviar el correo.', 'error');
     }
+    setCart([]);
+    setView('thankyou');
   };
 
-  const handleLogin = (user: string, pass: string): boolean => {
-    if (user === 'admin' && pass === '0728') {
-      setIsAdmin(true);
-      setIsLoginModalOpen(false);
-      return true;
+  const handleLogin = (user: string, pass: string) => {
+    if (user === 'admin' && pass === '1234') {
+        setIsAdminMode(true);
+        setIsLoginModalOpen(false);
+        setView('admin');
+        showToast('Modo administrador activado.');
+        return true;
     }
     return false;
   };
-  
+
+  const handleLogout = () => {
+    setIsAdminMode(false);
+    setView('home');
+    showToast('Sesión de administrador cerrada.');
+  };
+
   const handleUpdatePerfume = (updatedPerfume: Perfume) => {
-    setPerfumes(currentPerfumes => 
-      currentPerfumes.map(p => p.id === updatedPerfume.id ? updatedPerfume : p)
-    );
-    setSelectedPerfume(updatedPerfume); // Keep the modal open with updated data
+    setAllPerfumes(prev => prev.map(p => p.id === updatedPerfume.id ? updatedPerfume : p));
+    showToast(`${updatedPerfume.name} actualizado correctamente.`);
   };
 
-  const handleImportPerfumes = (newPerfumesFromCSV: Perfume[]) => {
-    const existingNames = new Set(perfumes.map(p => p.name.toLowerCase()));
-    const uniqueNewPerfumes = newPerfumesFromCSV.filter(p => !existingNames.has(p.name.toLowerCase()));
-    
-    setPerfumes(currentPerfumes => [...uniqueNewPerfumes, ...currentPerfumes]);
-    setIsCSVImportModalOpen(false);
+  const handleAddNewPerfume = (newPerfume: Perfume) => {
+    const perfumeWithId = { ...newPerfume, id: Date.now() };
+    setAllPerfumes(prev => [perfumeWithId, ...prev]);
+    showToast(`${perfumeWithId.name} añadido al catálogo.`);
   };
 
-  const filteredPerfumes = useMemo(() => {
-    let result = [...perfumes];
+  const handleImportPerfumes = (newPerfumes: Perfume[]) => {
+    setAllPerfumes(prev => [...newPerfumes, ...prev]);
+    showToast(`${newPerfumes.length} productos importados con éxito.`);
+    setIsCsvImportModalOpen(false);
+  };
 
-    if (genderFilter !== 'all') {
-      result = result.filter(p => p.gender === genderFilter);
-    }
+  const handleApplySyncChanges = (updatedPerfumes: Perfume[]) => {
+    const updatedIds = new Set(updatedPerfumes.map(p => p.id));
+    setAllPerfumes(prev => {
+        const unchanged = prev.filter(p => !updatedIds.has(p.id));
+        return [...updatedPerfumes, ...unchanged];
+    });
+    showToast(`${updatedPerfumes.length} productos actualizados desde la sincronización.`);
+  };
 
-    if (familyFilter !== 'all') {
-      result = result.filter(p => p.olfactoryFamily === familyFilter);
-    }
+  const handleUpdateLogo = (newLogoUrl: string) => {
+    setLogoUrl(newLogoUrl);
+    showToast('Logo actualizado con éxito.');
+  };
 
-    if (priceSort === 'asc') {
-      result.sort((a, b) => a.price - b.price);
-    } else if (priceSort === 'desc') {
-      result.sort((a, b) => b.price - a.price);
-    }
+  const cartItemCount = useMemo(() => cart.reduce((sum, item) => sum + item.quantity, 0), [cart]);
 
-    return result;
-  }, [perfumes, genderFilter, priceSort, familyFilter]);
+  const renderHomeView = () => (
+    <>
+      <section className="relative h-screen min-h-[600px] flex items-center justify-center text-center bg-cover bg-center" style={{ backgroundImage: `url('https://images.unsplash.com/photo-1558560047-8ab75373a2e2?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D')` }}>
+          <div className="absolute inset-0 bg-black/60"></div>
+          <div className="relative z-10 p-4">
+              <h1 className="text-5xl md:text-7xl font-serif-display font-bold text-white leading-tight">Tu Aroma, Tu Historia.</h1>
+              <p className="mt-4 text-xl text-gray-200 max-w-2xl mx-auto">Más que perfumes, vendemos paisajes olfativos. Cada fragancia es una invitación a revivir un momento.</p>
+              <button
+                  onClick={() => setIsQuizOpen(true)}
+                  className="mt-8 px-10 py-4 bg-[#E86A33] text-white font-bold rounded-full shadow-lg hover:bg-opacity-90 transition-transform transform hover:scale-105 flex items-center gap-2 mx-auto"
+              >
+                  <SparklesIcon className="h-6 w-6" />
+                  Descubre tu Aroma Ideal
+              </button>
+          </div>
+          <div ref={quizRef} className="absolute bottom-0 h-1" />
+      </section>
+      
+      <OlfactoryFamilyExplorer onFamilySelect={() => navigateAndScroll(catalogRef)} />
 
+      <div ref={catalogRef}>
+          <CatalogView perfumes={allPerfumes} onViewDetails={handleViewDetails} onAddToCart={handleAddToCart} isAdmin={isAdminMode} />
+      </div>
+
+      <div ref={bestSellersRef}>
+          <BestSellers perfumes={allPerfumes} onViewDetails={handleViewDetails} onAddToCart={handleAddToCart} isAdmin={isAdminMode} />
+      </div>
+    </>
+  );
 
   return (
-    <div className="min-h-screen bg-[#224859] text-[#F5F5F5] font-sans">
-      <Header isSticky={isHeaderSticky} />
+    <div className="bg-[#224859] text-white">
+      <AnnouncementBar />
+      <Header
+        isSticky={isSticky}
+        cartItemCount={cartItemCount}
+        onCartClick={() => setView('cart')}
+        logoUrl={logoUrl}
+        onSearchClick={() => setIsSearchModalOpen(true)}
+        onNavigateToHome={() => navigateAndScroll(null)}
+        onNavigateToShop={() => navigateAndScroll(catalogRef)}
+        onNavigateToQuiz={() => navigateAndScroll(quizRef)}
+        onNavigateToBestSellers={() => navigateAndScroll(bestSellersRef)}
+      />
+
       <main>
-        {/* Hero Section */}
-        <section className="relative h-[60vh] md:h-[80vh] flex items-center justify-center text-center overflow-hidden">
-          <div className="absolute inset-0 bg-black opacity-40 z-10"></div>
-          <img src="https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?q=80&w=1920&auto=format&fit=crop" alt="Sunset over the ocean" className="absolute inset-0 w-full h-full object-cover"/>
-          <div className="relative z-20 p-4">
-            <h1 className="font-serif-display text-4xl md:text-6xl lg:text-7xl font-bold leading-tight drop-shadow-lg text-[#E86A33]">
-              Captura tu momento.
-            </h1>
-            <p className="mt-4 text-lg md:text-xl max-w-2xl mx-auto drop-shadow-md">Descubre el aroma de tus recuerdos.</p>
-            <button 
-              onClick={() => document.getElementById('collections')?.scrollIntoView({ behavior: 'smooth' })}
-              className="mt-8 px-8 py-3 bg-[#E86A33] text-white font-semibold rounded-full shadow-lg hover:bg-opacity-90 transition-transform transform hover:scale-105"
-            >
-              Descubrir Catálogo
-            </button>
-          </div>
-        </section>
-
-        {/* Best Sellers Section */}
-        <BestSellers perfumes={perfumes} onViewDetails={handleViewDetails} />
-
-        {/* Catalog Section */}
-        <section id="collections" className="py-16 sm:py-24 bg-[#1c3a4a]">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-center items-center gap-4 mb-4">
-               <h2 className="text-3xl font-serif-display text-center font-bold text-[#DAB162]">Nuestro Catálogo</h2>
-               {isAdmin && (
-                 <>
-                    <span className="px-3 py-1 text-sm font-bold bg-red-600 text-white rounded-full animate-pulse">MODO ADMIN</span>
-                    <button onClick={() => setIsCSVImportModalOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-[#DAB162] text-[#224859] font-bold rounded-full shadow-lg hover:bg-opacity-90 transition-transform transform hover:scale-105">
-                        <ImportIcon className="h-5 w-5"/>
-                        Importar Catálogo
-                    </button>
-                 </>
-                )}
-            </div>
-            <p className="text-center max-w-2xl mx-auto text-[#DAB162] mb-8">Aromas para cada estilo y ocasión.</p>
-
-            {/* Filter Controls */}
-            <div className="flex flex-col gap-6 justify-center items-center mb-10 p-6 bg-[#2a556a]/70 rounded-xl border border-[#3a6a82]">
-                <div className="flex flex-col md:flex-row gap-x-8 gap-y-4 items-center flex-wrap justify-center">
-                    {/* Gender filter */}
-                    <div className="flex items-center gap-2 flex-wrap justify-center">
-                        <span className="font-semibold text-lg text-white mr-2">Género:</span>
-                        {(['all', 'Mujer', 'Hombre', 'Unisex'] as const).map(gender => (
-                            <button
-                                key={gender}
-                                onClick={() => setGenderFilter(gender)}
-                                className={`px-4 py-2 text-sm font-bold rounded-full transition-all duration-200 ${genderFilter === gender ? 'bg-[#DAB162] text-[#224859] shadow-md' : 'bg-[#1c3a4a] text-gray-300 hover:bg-[#3a6a82]'}`}
-                            >
-                                {gender === 'all' ? 'Todos' : gender}
-                            </button>
-                        ))}
-                    </div>
-                    {/* Olfactory Family Filter */}
-                    <div className="flex items-center gap-2 flex-wrap justify-center">
-                        <span className="font-semibold text-lg text-white mr-2">Familia:</span>
-                        {(['all', 'Floral', 'Oriental', 'Amaderado', 'Cítrico', 'Aromático'] as const).map(family => (
-                            <button
-                                key={family}
-                                onClick={() => setFamilyFilter(family as 'all' | OlfactoryFamily)}
-                                className={`px-4 py-2 text-sm font-bold rounded-full transition-all duration-200 ${familyFilter === family ? 'bg-[#DAB162] text-[#224859] shadow-md' : 'bg-[#1c3a4a] text-gray-300 hover:bg-[#3a6a82]'}`}
-                            >
-                                {family === 'all' ? 'Todas' : family}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                    <label htmlFor="price-sort" className="font-semibold text-lg text-white">Ordenar por:</label>
-                    <select
-                        id="price-sort"
-                        value={priceSort}
-                        onChange={(e) => setPriceSort(e.target.value as 'none' | 'asc' | 'desc')}
-                        className="bg-[#1c3a4a] border border-[#3a6a82] rounded-full text-white font-semibold py-2 px-4 focus:outline-none focus:ring-2 focus:ring-[#DAB162] cursor-pointer"
-                    >
-                        <option value="none">Relevancia</option>
-                        <option value="asc">Menor a Mayor Precio</option>
-                        <option value="desc">Mayor a Menor Precio</option>
-                    </select>
-                </div>
-            </div>
-
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
-              {filteredPerfumes.map(perfume => (
-                <PerfumeCard key={perfume.id} perfume={perfume} onViewDetails={handleViewDetails} isAdmin={isAdmin} />
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* Quiz CTA Section */}
-        <section className="bg-[#2a556a]">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20 text-center">
-            <SparklesIcon className="mx-auto h-12 w-12 text-[#DAB162] mb-4" />
-            <h2 className="text-3xl font-serif-display font-bold text-[#DAB162]">¿No sabes por dónde empezar?</h2>
-            <p className="mt-4 text-lg text-gray-300 max-w-2xl mx-auto">
-              Responde nuestro breve cuestionario y deja que nuestra IA encuentre el paisaje olfativo perfecto para ti.
-            </p>
-            <button 
-              onClick={handleOpenQuiz}
-              className="mt-8 px-10 py-4 bg-[#DAB162] text-[#224859] font-bold rounded-full shadow-lg hover:bg-opacity-90 transition-transform transform hover:scale-105"
-            >
-              Descubre tu Aroma Ideal
-            </button>
-          </div>
-        </section>
-        
-        {/* Social Proof Section */}
-        <section className="py-16 sm:py-24">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <h2 className="text-3xl font-serif-display text-center font-bold text-[#DAB162] mb-12">Amado por nuestros clientes</h2>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    <div className="bg-[#2a556a] p-6 rounded-lg shadow-lg">
-                        <p className="text-gray-300">"¡Una experiencia increíble! El perfume que me recomendaron es exactamente lo que buscaba. Es como si hubieran embotellado un atardecer."</p>
-                        <p className="mt-4 font-bold text-white">- Ana G.</p>
-                    </div>
-                    <div className="bg-[#2a556a] p-6 rounded-lg shadow-lg">
-                        <p className="text-gray-300">"La calidad es excepcional y la presentación es preciosa. ScentMart se ha convertido en mi única tienda de perfumes."</p>
-                        <p className="mt-4 font-bold text-white">- Carlos R.</p>
-                    </div>
-                    <div className="bg-[#2a556a] p-6 rounded-lg shadow-lg">
-                        <p className="text-gray-300">"Me encantó el quiz. Fue divertido y las recomendaciones fueron muy acertadas. Compré dos de las tres sugerencias."</p>
-                        <p className="mt-4 font-bold text-white">- Sofía L.</p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
+        {view === 'home' && renderHomeView()}
+        {view === 'cart' && <CartPage cart={cart} onUpdateQuantity={handleUpdateQuantity} onRemoveItem={handleRemoveFromCart} onGoToCheckout={() => setView('checkout')} onGoToShop={() => navigateAndScroll(catalogRef)} />}
+        {view === 'checkout' && <CheckoutPage cart={cart} onPlaceOrder={handlePlaceOrder} onBackToCart={() => setView('cart')} />}
+        {view === 'thankyou' && <ThankYouPage order={latestOrder} onGoToHome={() => setView('home')} />}
+        {view === 'admin' && <AdminPage perfumes={allPerfumes} logoUrl={logoUrl} onAddNewPerfume={handleAddNewPerfume} onUpdatePerfume={handleUpdatePerfume} onUpdateLogo={handleUpdateLogo} onExitAdmin={() => setView('home')} onLogout={handleLogout} onOpenSyncModal={() => setIsSyncModalOpen(true)} onEditProduct={handleViewDetails} />}
       </main>
-      <Footer isAdmin={isAdmin} onToggleAdmin={handleToggleAdmin} />
-      
-      <WhatsAppButton />
 
-      {isQuizOpen && (
-        <QuizModal 
-          onClose={handleCloseQuiz}
-          onSubmit={handleQuizSubmit}
-          isLoading={isLoading}
-          error={error}
-          results={quizResults}
-        />
-      )}
-      {selectedPerfume && (
-        <PerfumeDetailModal
-          perfume={selectedPerfume}
-          onClose={handleCloseDetails}
-          onUpdate={handleUpdatePerfume}
-          isAdmin={isAdmin}
-        />
-      )}
-      {isCSVImportModalOpen && (
-        <CSVImportModal
-          onClose={() => setIsCSVImportModalOpen(false)}
-          onImport={handleImportPerfumes}
-          currentPerfumes={perfumes}
-        />
-      )}
-      {isLoginModalOpen && (
-        <LoginModal
-          onClose={() => setIsLoginModalOpen(false)}
-          onLogin={handleLogin}
-        />
-      )}
+      <Footer
+        isAdmin={isAdminMode}
+        onNavigateToAdmin={() => isAdminMode ? setView('admin') : setIsLoginModalOpen(true)}
+        onNavigateToHome={() => navigateAndScroll(null)}
+        onNavigateToShop={() => navigateAndScroll(catalogRef)}
+        onNavigateToQuiz={() => navigateAndScroll(quizRef)}
+        onNavigateToBestSellers={() => navigateAndScroll(bestSellersRef)}
+      />
+
+      {isQuizOpen && <QuizModal onClose={() => setIsQuizOpen(false)} onSubmit={handleQuizSubmit} isLoading={quizLoading} error={quizError} results={quizResults} onViewDetails={handleViewDetails} />}
+      {isDetailModalOpen && selectedPerfume && <PerfumeDetailModal perfume={selectedPerfume} onClose={() => setIsDetailModalOpen(false)} onUpdate={handleUpdatePerfume} isAdmin={isAdminMode} onAddToCart={handleAddToCart} />}
+      {isCsvImportModalOpen && <CSVImportModal onClose={() => setIsCsvImportModalOpen(false)} onImport={handleImportPerfumes} currentPerfumes={allPerfumes} />}
+      {isLoginModalOpen && <LoginModal onClose={() => setIsLoginModalOpen(false)} onLogin={handleLogin} />}
+      {isSyncModalOpen && <CatalogSyncModal isOpen={isSyncModalOpen} onClose={() => setIsSyncModalOpen(false)} perfumes={allPerfumes} onApplyChanges={handleApplySyncChanges} />}
+      {isSearchModalOpen && <SearchModal isOpen={isSearchModalOpen} onClose={() => setIsSearchModalOpen(false)} perfumes={allPerfumes} onViewDetails={handleViewDetails} />}
+      
+      {toast && <ToastNotification message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+      <WhatsAppButton />
     </div>
   );
-};
+}
 
 export default App;

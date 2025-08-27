@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { QuizPreferences, RecommendedPerfume } from '../types';
+import { QuizPreferences, Perfume } from '../types';
 import { XMarkIcon, SparklesIcon } from './icons';
 
 interface QuizModalProps {
@@ -8,7 +8,8 @@ interface QuizModalProps {
   onSubmit: (preferences: QuizPreferences) => void;
   isLoading: boolean;
   error: string | null;
-  results: RecommendedPerfume[] | null;
+  results: Perfume[] | null;
+  onViewDetails: (perfume: Perfume) => void;
 }
 
 const quizQuestions = [
@@ -29,7 +30,7 @@ const quizQuestions = [
     }
 ];
 
-export const QuizModal: React.FC<QuizModalProps> = ({ onClose, onSubmit, isLoading, error, results }) => {
+export const QuizModal: React.FC<QuizModalProps> = ({ onClose, onSubmit, isLoading, error, results, onViewDetails }) => {
   const [preferences, setPreferences] = useState<QuizPreferences>({
     landscape: '',
     sensation: '',
@@ -62,7 +63,7 @@ export const QuizModal: React.FC<QuizModalProps> = ({ onClose, onSubmit, isLoadi
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4 transition-opacity duration-300" role="dialog" aria-modal="true">
-      <div className="bg-[#224859] border border-[#3a6a82] rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto relative transform transition-all duration-300 scale-95 animate-scale-in">
+      <div className="bg-[#224859] border border-[#3a6a82] rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto relative transform transition-all duration-300 scale-95 animate-scale-in">
         <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors z-10">
           <XMarkIcon className="h-8 w-8" />
         </button>
@@ -107,7 +108,7 @@ export const QuizModal: React.FC<QuizModalProps> = ({ onClose, onSubmit, isLoadi
             {isLoading && (
                 <div className="text-center py-20">
                     <SparklesIcon className="mx-auto h-16 w-16 text-[#DAB162] animate-pulse" />
-                    <h3 className="mt-4 text-2xl font-serif-display text-white">Creando tu paisaje olfativo...</h3>
+                    <h3 className="mt-4 text-2xl font-serif-display text-white">Buscando en nuestro catálogo...</h3>
                     <p className="text-gray-300">Un momento, por favor.</p>
                 </div>
             )}
@@ -122,20 +123,32 @@ export const QuizModal: React.FC<QuizModalProps> = ({ onClose, onSubmit, isLoadi
             {results && !isLoading && (
                 <div>
                     <h2 className="font-serif-display text-3xl font-bold text-center text-[#DAB162]">Tus Aromas Recomendados</h2>
-                    <p className="text-center text-[#DAB162] mt-2">Basado en tus preferencias, hemos creado estas experiencias únicas para ti.</p>
-                    <div className="mt-8 space-y-8">
-                        {results.map((perfume, index) => (
-                            <div key={index} className="bg-[#2a556a] p-6 rounded-lg border border-[#3a6a82]">
-                                <h3 className="font-serif-display text-2xl font-bold text-[#E86A33]">{perfume.name}</h3>
-                                <p className="mt-2 text-gray-300 italic">"{perfume.story}"</p>
-                                <div className="mt-4 border-t border-[#3a6a82] pt-4">
-                                    <p className="text-white"><span className="font-semibold text-[#DAB162]">Salida:</span> {perfume.pyramid.top}</p>
-                                    <p className="text-white"><span className="font-semibold text-[#DAB162]">Corazón:</span> {perfume.pyramid.heart}</p>
-                                    <p className="text-white"><span className="font-semibold text-[#DAB162]">Fondo:</span> {perfume.pyramid.base}</p>
+                    <p className="text-center text-[#DAB162] mt-2">Basado en tus preferencias, estos perfumes en stock son perfectos para ti.</p>
+                    
+                    {results.length > 0 ? (
+                        <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                            {results.map((perfume) => (
+                                <div key={perfume.id} className="bg-[#2a556a] p-4 rounded-lg border border-[#3a6a82] flex flex-col items-center text-center transition-transform transform hover:scale-105">
+                                    <img src={perfume.imageUrl} alt={perfume.name} className="w-28 h-28 object-cover rounded-lg mb-4 shadow-md" />
+                                    <div className="flex-grow flex flex-col justify-center">
+                                      <h3 className="font-serif-display font-bold text-white ">{perfume.name}</h3>
+                                      <p className="text-sm text-[#DAB162] mb-4">{perfume.brand}</p>
+                                    </div>
+                                    <button
+                                        onClick={() => onViewDetails(perfume)}
+                                        className="mt-auto w-full px-4 py-2 bg-[#E86A33] text-white font-semibold text-sm rounded-full shadow-lg hover:bg-opacity-90"
+                                    >
+                                        Ver Detalles
+                                    </button>
                                 </div>
-                            </div>
-                        ))}
-                    </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="text-center py-10">
+                            <p className="text-lg text-gray-300">No pudimos encontrar una coincidencia perfecta en nuestro stock actual.</p>
+                            <p className="text-gray-400 mt-2">¡Vuelve a intentarlo con otras opciones o explora nuestro catálogo completo!</p>
+                        </div>
+                    )}
                 </div>
             )}
         </div>

@@ -1,7 +1,6 @@
 
 
 import React, { useState, useCallback } from 'react';
-// FIX: Import OlfactoryFamily to use for type validation.
 import { Perfume, OlfactoryFamily } from '../types';
 import { XMarkIcon, DownloadIcon, ImportIcon } from './icons';
 
@@ -94,7 +93,6 @@ export const CSVImportModal: React.FC<CSVImportModalProps> = ({ onClose, onImpor
       failed: [],
     };
 
-    // FIX: Define valid olfactory families to validate against the CSV 'categoria' column.
     const validOlfactoryFamilies: OlfactoryFamily[] = ['Floral', 'Oriental', 'Amaderado', 'Cítrico', 'Aromático'];
 
     data.forEach((row, index) => {
@@ -133,22 +131,19 @@ export const CSVImportModal: React.FC<CSVImportModalProps> = ({ onClose, onImpor
         genderValue === 'mujer' ? 'Mujer' :
         'Unisex';
 
-      // FIX: Determine olfactory family from 'categoria' column, with a fallback.
       const categoryValue = (row.categoria || '').trim().toLowerCase();
       const olfactoryFamily = (validOlfactoryFamilies.find(f => f.toLowerCase() === categoryValue) || 'Aromático');
 
       const newPerfume: Perfume = {
         id: Date.now() + index,
         name: row.nombre_producto,
-        // FIX: Assumed 'categoria' from CSV is the olfactory family, so brand is defaulted.
-        brand: row.categoria || 'ScentMart',
+        brand: 'ScentMart', // Default brand for imported items
         volume: 'No especificado', // You might want to add 'volume' to your CSV later
         price: price,
         originalPrice: originalPrice,
         stock: parseInt(row.stock, 10) || 0,
         imageUrl: row.url_imagen_1,
         gender: gender,
-        // FIX: Added missing 'olfactoryFamily' property to conform to Perfume type.
         olfactoryFamily: olfactoryFamily,
         details: {
           description: row.descripcion || 'Descripción no disponible.',

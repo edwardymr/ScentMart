@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Perfume, OlfactoryFamily } from '../types';
-import { XMarkIcon, ShoppingCartIcon } from './icons';
+import { XMarkIcon, ShoppingCartIcon, TruckIcon } from './icons';
 
 interface PerfumeDetailModalProps {
   perfume: Perfume;
   onClose: () => void;
   onUpdate: (perfume: Perfume) => void;
   isAdmin: boolean;
+  onAddToCart: (perfume: Perfume) => void;
 }
 
 const AdminInput: React.FC<React.InputHTMLAttributes<HTMLInputElement>> = (props) => (
@@ -34,7 +35,7 @@ const AdminSelect: React.FC<React.SelectHTMLAttributes<HTMLSelectElement>> = (pr
 
 const olfactoryFamilies: OlfactoryFamily[] = ['Floral', 'Oriental', 'Amaderado', 'Cítrico', 'Aromático'];
 
-export const PerfumeDetailModal: React.FC<PerfumeDetailModalProps> = ({ perfume, onClose, onUpdate, isAdmin }) => {
+export const PerfumeDetailModal: React.FC<PerfumeDetailModalProps> = ({ perfume, onClose, onUpdate, isAdmin, onAddToCart }) => {
   const [editedPerfume, setEditedPerfume] = useState<Perfume>(perfume);
 
   useEffect(() => {
@@ -170,6 +171,15 @@ export const PerfumeDetailModal: React.FC<PerfumeDetailModalProps> = ({ perfume,
                     </>
                 )}
             </div>
+            
+            {!isAdmin && (
+              <div className="mt-4 flex items-center gap-2 text-sm bg-green-900/40 text-green-300 p-3 rounded-lg border border-green-700/50">
+                  <TruckIcon className="h-6 w-6 flex-shrink-0" />
+                  <span>
+                      <strong>¡Envío gratis a Santa Marta!</strong>
+                  </span>
+              </div>
+            )}
 
             <div className="mt-2">
                 {isAdmin ? (
@@ -189,6 +199,7 @@ export const PerfumeDetailModal: React.FC<PerfumeDetailModalProps> = ({ perfume,
             {!isAdmin && (
                 <div className="mt-6 flex flex-col gap-3">
                     <button 
+                    onClick={() => onAddToCart(perfume)}
                     disabled={perfume.stock === 0}
                     className="w-full flex items-center justify-center px-6 py-3 bg-[#E86A33] text-white font-bold rounded-full shadow-lg hover:bg-opacity-90 transition-all transform hover:scale-105 disabled:bg-gray-500 disabled:cursor-not-allowed disabled:transform-none"
                     >

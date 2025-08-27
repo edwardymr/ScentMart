@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { XMarkIcon, UserIcon, LockClosedIcon } from './icons';
 
@@ -31,6 +30,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onClose, onLogin }) => {
         <div className="p-8 sm:p-12">
           <h2 className="font-serif-display text-3xl font-bold text-center text-[#DAB162]">Acceso Administrador</h2>
           <p className="text-center text-gray-300 mt-2">Ingresa tus credenciales para continuar.</p>
+          <p className="text-center text-gray-400 text-sm mt-2">(Pista: el usuario es 'admin' y la clave '1234')</p>
           
           <form onSubmit={handleSubmit} className="mt-8 space-y-6">
             <div>

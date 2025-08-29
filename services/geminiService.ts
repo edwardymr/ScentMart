@@ -6,7 +6,7 @@ if (!process.env.API_KEY) {
     throw new Error("API_KEY environment variable not set");
 }
 
-const apiKey = import.meta.env.GEMINI_API_KEY;
+const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
 
 // New Schema for recommending existing perfumes by name
 const recommendationSchema = {

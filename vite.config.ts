@@ -14,11 +14,6 @@ export default defineConfig(({ mode }) => {
     // 2. Añade los plugins que necesitas
     plugins: [react()],
 
-    // 3. Define las variables de entorno para tu código
-   define: {
-  'import.meta.env.GEMINI_API_KEY': JSON.stringify(process.env.GEMINI_API_KEY)
-},
-
     // 4. Configura los alias de ruta
     resolve: {
       alias: {

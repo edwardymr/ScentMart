@@ -32,10 +32,11 @@ jobs:
         run: npm install
 
       # 4. Construye la aplicación (el paso más importante)
+      # DENTRO DE deploy.yml
+
       - name: Build
-        run: npm run build
-        env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          VITE_GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }} npm run build
 
       # 5. Prepara la carpeta 'dist' para ser publicada
       - name: Setup Pages

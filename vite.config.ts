@@ -1,24 +1,11 @@
-import path from 'path';
-import react from '@vitejs/plugin-react'; // Asegúrate de importar react
-import { defineConfig, loadEnv } from 'vite';
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
 
-export default defineConfig(({ mode }) => {
-  // Primero, carga las variables de entorno
-  const env = loadEnv(mode, process.cwd(), '');
-
-  // Luego, retorna UN SOLO objeto de configuración con todas las claves
-  return {
-    // 1. Configura la ruta base para GitHub Pages
-    base: '/ScentMart/',
-
-    // 2. Añade los plugins que necesitas
-    plugins: [react()],
-
-    // 4. Configura los alias de ruta
-    resolve: {
-      alias: {
-        '@': path.resolve(__dirname, './src'), // Es mejor práctica apuntar a './src'
-      }
-    }
-  };
+// https://vitejs.dev/config/
+export default defineConfig({
+  // 1. La ruta base para que GitHub Pages encuentre tus archivos
+  base: '/ScentMart/', 
+  
+  // 2. El plugin necesario para que Vite entienda React (JSX)
+  plugins: [react()],
 });

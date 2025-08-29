@@ -1,25 +1,43 @@
+import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold, Part, FunctionDeclaration } from "@google/genai";
+import { QuizPreferences, Perfume } from '../types'; // Asegúrate de que la ruta a 'types' sea correcta
 
-import { GoogleGenAI, Type } from "@google/genai";
-import { QuizPreferences, Perfume } from '../types';
+// --- 1. INICIALIZACIÓN Y VALIDACIÓN DEL CLIENTE DE LA API ---
 
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
 
-// 2. Revisa la variable que ACABAS de crear.
 if (!apiKey) {
-    throw new Error("API_KEY environment variable not set");
+    // Si la clave no existe, la aplicación no puede funcionar. Lanza un error claro.
+    throw new Error("VITE_GEMINI_API_KEY environment variable not set. Please check your GitHub Secrets and workflow configuration.");
+}
 
-// New Schema for recommending existing perfumes by name
-const recommendationSchema = {
-  type: Type.ARRAY,
-  items: {
-    type: Type.STRING,
-    description: "El nombre exacto de un perfume recomendado de la lista proporcionada."
+// Crea una instancia del cliente de Gemini que será usada por las funciones.
+const genAI = new GoogleGenerativeAI(apiKey);
+
+// --- 2. DEFINICIÓN DE ESQUEMAS Y CONFIGURACIONES ---
+
+// Define el esquema de respuesta esperado de la IA.
+const recommendationSchema: FunctionDeclaration = {
+  name: "get_perfume_recommendations", // Los esquemas ahora necesitan un nombre de función
+  description: "Provides a list of recommended perfume names based on user preferences.",
+  parameters: {
+    type: "OBJECT",
+    properties: {
+      recommendations: {
+        type: "ARRAY",
+        items: {
+          type: "STRING",
+          description: "El nombre exacto de un perfume recomendado de la lista proporcionada."
+        }
+      }
+    },
+    required: ["recommendations"]
   }
 };
 
+// --- 3. FUNCIÓN PRINCIPAL EXPORTABLE ---
 
 export const findMyScent = async (preferences: QuizPreferences, availablePerfumes: Perfume[]): Promise<string[]> => {
-  // Simplify the perfume data to send to the API to save tokens and focus the model
+  
   const perfumeDataForPrompt = availablePerfumes.map(p => ({
     name: p.name,
     description: p.details?.description,
@@ -44,35 +62,34 @@ export const findMyScent = async (preferences: QuizPreferences, availablePerfume
     1.  Analiza profundamente las preferencias del cliente. "Playa al atardecer" sugiere notas marinas, cálidas o solares. "Bosque frondoso" sugiere notas amaderadas, verdes o terrosas. "Elegancia y misterio" sugiere notas orientales, especiadas o profundas.
     2.  Compara estas preferencias con la descripción, notas olfativas, familia y género de cada perfume en el catálogo.
     3.  Selecciona un máximo de 3 perfumes que mejor se adapten. Es mejor recomendar uno o dos excelentes que tres mediocres.
-    4.  Tu respuesta DEBE SER EXCLUSIVAMENTE un array JSON que contenga los nombres exactos (propiedad "name") de los perfumes seleccionados. No incluyas ninguna explicación, saludo, o texto adicional.
-    
-    Ejemplo de respuesta si recomiendas "BLEU INTENSE" y "Magnat":
-    ["BLEU INTENSE", "Magnat"]
+    4.  Llama a la función 'get_perfume_recommendations' con un array JSON que contenga los nombres exactos (propiedad "name") de los perfumes seleccionados.
   `;
 
   try {
-    const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: prompt,
-        config: {
-          responseMimeType: "application/json",
-          responseSchema: recommendationSchema,
-          temperature: 0.5, // Lower temperature for more predictable, focused results
-        },
+    // Usa la instancia 'genAI' creada al principio del archivo
+    const model = genAI.getGenerativeModel({ 
+        model: "gemini-1.5-flash", // O el modelo que prefieras
+        tools: [{ functionDeclarations: [recommendationSchema] }] // Usa el esquema como una herramienta
     });
 
-    const jsonText = response.text.trim();
-    const result = JSON.parse(jsonText);
+    const chat = model.startChat();
+    const result = await chat.sendMessage(prompt);
+    const call = result.response.functionCalls()?.[0];
 
-    if (!Array.isArray(result) || !result.every(item => typeof item === 'string')) {
-        console.error("La respuesta de la API no es un array de strings válido:", result);
-        throw new Error("Formato de respuesta de API inválido.");
+    if (call?.name === 'get_perfume_recommendations' && call.args.recommendations) {
+        const recommendations = call.args.recommendations;
+        if (Array.isArray(recommendations) && recommendations.every(item => typeof item === 'string')) {
+            return recommendations as string[];
+        }
     }
-
-    return result as string[];
+    
+    // Si la IA no llama a la función o el formato es incorrecto, devuelve un array vacío.
+    console.error("La respuesta de la API no llamó a la función esperada o el formato era inválido.");
+    return [];
 
   } catch (error) {
     console.error("Error calling Gemini API:", error);
-    throw new Error("No se pudo obtener una recomendación. Por favor, intente de nuevo más tarde.");
+    // Devuelve un array vacío en caso de error para no romper la aplicación
+    return []; 
   }
 };

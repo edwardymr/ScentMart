@@ -1,16 +1,15 @@
 /** @type {import('tailwindcss').Config} */
 export default {
+  // Aquí le damos el mapa exacto de tu proyecto a Tailwind
   content: [
-    "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}",
-    "./components/**/*.{js,ts,jsx,tsx}",
-    "./app/**/*.{js,ts,jsx,tsx}",
-    "./pages/**/*.{js,ts,jsx,tsx}",
+    "./index.html",                 // 1. Escanea el index.html en la raíz
+    "./App.tsx",                    // 2. Escanea App.tsx en la raíz
+    "./index.tsx",                  // 3. Escanea index.tsx en la raíz
+    "./components/**/*.{js,ts,jsx,tsx}" // 4. Escanea TODOS los archivos .tsx dentro de la carpeta 'components'
   ],
   theme: {
     extend: {
-      // Es buena práctica añadir tus colores personalizados aquí
-      // para que puedas usarlos con clases como 'bg-brand-blue'
+      // Tus colores personalizados para fácil acceso
       colors: {
         'brand-blue': '#224859',
         'brand-dark-blue': '#1c3a4a',

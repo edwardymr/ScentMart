@@ -1,54 +1,64 @@
-# Nombre del flujo de trabajo que verás en la pestaña "Actions"
+# Nombre del flujo de trabajo
 name: Deploy React App to GitHub Pages
 
 # Se ejecuta cada vez que haces un 'push' a la rama 'main'
 on:
   push:
     branches: [ "main" ]
+  # AÑADIMOS ESTO: Permite ejecutar el workflow manualmente desde la pestaña Actions
+  workflow_dispatch:
 
-# Permisos necesarios para que el robot pueda publicar en tu nombre
+# Permisos necesarios
 permissions:
   contents: read
   pages: write
   id-token: write
 
-# Define el trabajo que hará el robot
+# Define el trabajo
 jobs:
   deploy:
-    runs-on: ubuntu-latest # Usa una máquina virtual de Ubuntu
+    runs-on: ubuntu-latest
     steps:
-      # 1. Clona tu repositorio en la máquina virtual
+      # 1. Clona tu repositorio
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 2. Configura Node.js para poder ejecutar los comandos de build
+      # 2. Configura Node.js
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20 # Usa una versión reciente de Node.js
+          node-version: 20
+          # AÑADIMOS ESTO: Le decimos a Node dónde está su caché
+          cache: 'npm'
 
-      # 3. Instala las dependencias de tu proyecto
+      # NUEVO PASO: Limpia la caché de NPM por si acaso
+      - name: Clean npm cache
+        run: npm cache clean --force
+      
+      # 3. Instala las dependencias
       - name: Install dependencies
         run: npm install
 
-      # 4. Construye la aplicación (el paso más importante)
-      # DENTRO DE deploy.yml
-
+      # 4. Construye la aplicación (con el secreto)
       - name: Build
         run: |
           VITE_GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }} npm run build
 
-      # 5. Prepara la carpeta 'dist' para ser publicada
+      # NUEVO PASO DE DEPURACIÓN: Lista los archivos en 'dist'
+      - name: List files in dist directory
+        run: ls -R dist
+
+      # 5. Prepara la carpeta para ser publicada
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
-      # 6. Sube la carpeta 'dist' como un artefacto
+      # 6. Sube la carpeta 'dist'
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: './dist' # Asegúrate de que esta es la carpeta que genera tu build
+          path: './dist'
 
-      # 7. Despliega el artefacto en GitHub Pages
+      # 7. Despliega en GitHub Pages
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4

@@ -10,7 +10,7 @@ if (!apiKey) {
 }
 
 // CORRECCIÓN #1: Usa 'GoogleGenAI' en lugar de 'GoogleGenerativeAI'
-const genAI = new GoogleGenAI(apiKey);
+const genAI = new GoogleGenAI({ apiKey });
 
 // --- 2. DEFINICIÓN DE ESQUEMAS Y CONFIGURACIONES ---
 

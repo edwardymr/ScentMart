@@ -2,11 +2,11 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { QuizPreferences, Perfume } from '../types';
 
-if (!process.env.API_KEY) {
-    throw new Error("API_KEY environment variable not set");
-}
-
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+
+// 2. Revisa la variable que ACABAS de crear.
+if (!apiKey) {
+    throw new Error("API_KEY environment variable not set");
 
 // New Schema for recommending existing perfumes by name
 const recommendationSchema = {

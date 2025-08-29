@@ -35,7 +35,7 @@ jobs:
       - name: Build
         run: npm run build
         env:
-          GEMINI_API_KEY: ${{ AIzaSyBhaCo6eWXWZW-RRMuj6VHDBom0KbXPddo }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
 
       # 5. Prepara la carpeta 'dist' para ser publicada
       - name: Setup Pages

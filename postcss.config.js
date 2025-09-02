@@ -1,7 +1,6 @@
-export default {
+module.exports = {
   plugins: {
-    '@tailwindcss/postcss': {}, // Usa el nuevo paquete
-    tailwindcss: {}, // Mantenemos el original por si acaso
+    tailwindcss: {},
     autoprefixer: {},
   },
 }
